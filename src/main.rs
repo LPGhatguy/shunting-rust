@@ -38,11 +38,39 @@ fn match_constant<'a>(source: &'a str) -> Option<(&'a str, Token<'a>)> {
 }
 
 fn match_operator<'a>(source: &'a str) -> Option<(&'a str, Token<'a>)> {
-    None
+    if let Some(range) = PATTERN_OPERATOR.find(source) {
+        let matched = &source[range.start()..range.end()];
+        let rest = &source[range.end()..];
+
+        Some((rest, Token::Operator(matched)))
+    } else {
+        None
+    }
 }
 
 fn lex(source: &str) -> Vec<Token> {
-    Vec::new()
+    let mut tokens = Vec::new();
+    let mut current = source;
+
+    loop {
+        current = eat_whitespace(current);
+
+        if let Some((next, token)) = match_constant(current) {
+            tokens.push(token);
+            current = next;
+        } else if let Some((next, token)) = match_operator(current) {
+            tokens.push(token);
+            current = next;
+        } else {
+            break;
+        }
+    }
+
+    if !current.is_empty() {
+        eprintln!("Found garbage at end: {}", current);
+    }
+
+    tokens
 }
 
 fn main() {
