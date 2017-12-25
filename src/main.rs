@@ -5,9 +5,29 @@ extern crate regex;
 use regex::Regex;
 
 #[derive(Debug, PartialEq, Eq)]
-enum Token<'a> {
+enum BinaryOperatorKind {
+    Plus,
+    Minus,
+    Times,
+    Divide,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum Token {
     Constant(u64),
-    Operator(&'a str),
+    Operator(BinaryOperatorKind),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum AstNode {
+    Constant {
+        value: u64,
+    },
+    BinaryOperator {
+        kind: BinaryOperatorKind,
+        left: Box<AstNode>,
+        right: Box<AstNode>,
+    },
 }
 
 lazy_static! {
@@ -24,7 +44,7 @@ fn eat_whitespace<'a>(source: &'a str) -> &'a str {
     }
 }
 
-fn match_constant<'a>(source: &'a str) -> Option<(&'a str, Token<'a>)> {
+fn match_constant<'a>(source: &'a str) -> Option<(&'a str, Token)> {
     if let Some(range) = PATTERN_CONSTANT.find(source) {
         let matched = &source[range.start()..range.end()];
         let rest = &source[range.end()..];
@@ -37,12 +57,19 @@ fn match_constant<'a>(source: &'a str) -> Option<(&'a str, Token<'a>)> {
     }
 }
 
-fn match_operator<'a>(source: &'a str) -> Option<(&'a str, Token<'a>)> {
+fn match_operator<'a>(source: &'a str) -> Option<(&'a str, Token)> {
     if let Some(range) = PATTERN_OPERATOR.find(source) {
-        let matched = &source[range.start()..range.end()];
         let rest = &source[range.end()..];
 
-        Some((rest, Token::Operator(matched)))
+        let kind = match &source[range.start()..range.end()] {
+            "+" => BinaryOperatorKind::Plus,
+            "-" => BinaryOperatorKind::Minus,
+            "*" => BinaryOperatorKind::Times,
+            "/" => BinaryOperatorKind::Divide,
+            _ => unreachable!(),
+        };
+
+        Some((rest, Token::Operator(kind)))
     } else {
         None
     }
@@ -71,6 +98,10 @@ fn lex(source: &str) -> Vec<Token> {
     }
 
     tokens
+}
+
+fn parse(tokens: Vec<Token>) {
+
 }
 
 fn main() {
