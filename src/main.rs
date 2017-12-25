@@ -2,29 +2,46 @@
 extern crate lazy_static;
 extern crate regex;
 
+use std::io::{self, BufRead, Write};
+
 use regex::Regex;
 
-#[derive(Debug, PartialEq, Eq)]
-enum BinaryOperatorKind {
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum OperatorKind {
     Plus,
     Minus,
     Times,
     Divide,
 }
 
+impl OperatorKind {
+    pub fn precedence(&self) -> u8 {
+        match *self {
+            OperatorKind::Plus | OperatorKind::Minus => 1,
+            OperatorKind::Times | OperatorKind::Divide => 2,
+        }
+    }
+
+    pub fn is_left_associative(&self) -> bool {
+        match *self {
+            _ => true,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 enum Token {
-    Constant(u64),
-    Operator(BinaryOperatorKind),
+    Constant(i64),
+    Operator(OperatorKind),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 enum AstNode {
     Constant {
-        value: u64,
+        value: i64,
     },
     BinaryOperator {
-        kind: BinaryOperatorKind,
+        kind: OperatorKind,
         left: Box<AstNode>,
         right: Box<AstNode>,
     },
@@ -49,7 +66,7 @@ fn match_constant<'a>(source: &'a str) -> Option<(&'a str, Token)> {
         let matched = &source[range.start()..range.end()];
         let rest = &source[range.end()..];
 
-        let value: u64 = matched.parse().unwrap();
+        let value: i64 = matched.parse().unwrap();
 
         Some((rest, Token::Constant(value)))
     } else {
@@ -62,10 +79,10 @@ fn match_operator<'a>(source: &'a str) -> Option<(&'a str, Token)> {
         let rest = &source[range.end()..];
 
         let kind = match &source[range.start()..range.end()] {
-            "+" => BinaryOperatorKind::Plus,
-            "-" => BinaryOperatorKind::Minus,
-            "*" => BinaryOperatorKind::Times,
-            "/" => BinaryOperatorKind::Divide,
+            "+" => OperatorKind::Plus,
+            "-" => OperatorKind::Minus,
+            "*" => OperatorKind::Times,
+            "/" => OperatorKind::Divide,
             _ => unreachable!(),
         };
 
@@ -94,20 +111,119 @@ fn lex(source: &str) -> Vec<Token> {
     }
 
     if !current.is_empty() {
-        eprintln!("Found garbage at end: {}", current);
+        eprintln!("Found unexpected sequence: {}", current);
     }
 
     tokens
 }
 
-fn parse(tokens: Vec<Token>) {
+fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
+    let mut operator_stack: Vec<OperatorKind> = Vec::new();
+    let mut operand_stack: Vec<AstNode> = Vec::new();
 
+    loop {
+        let token = match tokens.first() {
+            Some(token) => token,
+            None => break,
+        };
+
+        tokens = &tokens[1..];
+
+        match *token {
+            Token::Constant(value) => {
+                operand_stack.push(AstNode::Constant {
+                    value
+                });
+            },
+            Token::Operator(operator) => {
+                // clear all operators of higher precedence from the stack
+                loop {
+                    {
+                        let top_operator = match operator_stack.last() {
+                            Some(operator) => operator,
+                            None => break,
+                        };
+
+                        if operator.precedence() >= top_operator.precedence() {
+                            break;
+                        }
+                    }
+
+                    let top_operator = operator_stack.pop().unwrap();
+                    let right = Box::new(operand_stack.pop().unwrap());
+                    let left = Box::new(operand_stack.pop().unwrap());
+
+                    operand_stack.push(AstNode::BinaryOperator {
+                        kind: top_operator,
+                        left,
+                        right,
+                    });
+                }
+
+                operator_stack.push(operator);
+            },
+        }
+    }
+
+    while !operator_stack.is_empty() {
+        let top_operator = operator_stack.pop().unwrap();
+        let right = Box::new(operand_stack.pop().unwrap());
+        let left = Box::new(operand_stack.pop().unwrap());
+
+        operand_stack.push(AstNode::BinaryOperator {
+            kind: top_operator,
+            left,
+            right,
+        });
+    }
+
+    if operand_stack.is_empty() {
+        None
+    } else {
+        Some(operand_stack.pop().unwrap())
+    }
+}
+
+fn evaluate(ast: &AstNode) -> i64 {
+    match *ast {
+        AstNode::Constant { value } => value,
+        AstNode::BinaryOperator { kind, ref left, ref right } => {
+            match kind {
+                OperatorKind::Plus => evaluate(&left) + evaluate(&right),
+                OperatorKind::Minus => evaluate(&left) - evaluate(&right),
+                OperatorKind::Times => evaluate(&left) * evaluate(&right),
+                OperatorKind::Divide => evaluate(&left) / evaluate(&right),
+            }
+        },
+    }
 }
 
 fn main() {
-    let input = "5 + 6 + 3";
+    let stdin = io::stdin();
 
-    let tokens = lex(input);
+    loop {
+        print!("> ");
+        io::stdout().flush().unwrap();
 
-    println!("Tokens: {:?}", tokens);
+        let mut input = String::new();
+
+        stdin
+            .lock()
+            .read_line(&mut input)
+            .expect("Couldn't read line!");
+
+        let tokens = lex(&input);
+
+        let ast = match parse_expression(&tokens) {
+            Some(ast) => ast,
+            None => {
+                eprintln!("Could not parse expression!");
+                continue;
+            },
+        };
+
+        let result = evaluate(&ast);
+
+        println!("{}", result);
+    }
 }
