@@ -37,6 +37,7 @@ impl ShuntOperator {
         match *self {
             ShuntOperator::Plus | ShuntOperator::Minus => 1,
             ShuntOperator::Times | ShuntOperator::Divide => 2,
+            ShuntOperator::Exponent => 3,
             _ => 0,
         }
     }
@@ -142,18 +143,34 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
             Token::Operator(lex_operator) => {
                 let operator = ShuntOperator::from_lex_operator(&lex_operator);
 
-                // clear all operators of higher precedence from the stack
-                loop {
-                    match state.operator_stack.last() {
-                        Some(top_operator) => {
-                            if operator.precedence() >= top_operator.precedence() {
-                                break;
-                            }
-                        },
-                        None => break,
-                    }
+                if operator.is_left_associative() {
+                    // Clear all operators of higher precedence
+                    loop {
+                        match state.operator_stack.last() {
+                            Some(top_operator) => {
+                                if operator.precedence() > top_operator.precedence() {
+                                    break;
+                                }
+                            },
+                            None => break,
+                        }
 
-                    state.clear_one_operator();
+                        state.clear_one_operator();
+                    }
+                } else {
+                    // Clear all operators of higher or equal precedence
+                    loop {
+                        match state.operator_stack.last() {
+                            Some(top_operator) => {
+                                if operator.precedence() >= top_operator.precedence() {
+                                    break;
+                                }
+                            },
+                            None => break,
+                        }
+
+                        state.clear_one_operator();
+                    }
                 }
 
                 state.operator_stack.push(operator);

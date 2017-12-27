@@ -32,6 +32,47 @@ fn evaluate(ast: &AstNode) -> f64 {
     }
 }
 
+#[test]
+fn test_evaluate() {
+    fn check(source: &'static str, expected: f64) {
+        let ast = parse_expression(&lex(source)).unwrap();
+        let result = evaluate(&ast);
+
+        assert_eq!(result, expected);
+    }
+
+    // basic suite
+    check("1", 1.0);
+    check("2 + 3", 5.0);
+    check("(3 + 4)", 7.0);
+    check("((4 + 3))", 7.0);
+    check("3 * 3 * 3", 27.0);
+
+    // communicativity
+    check("1 + 2 * 3", 7.0);
+    check("2 * 3 + 1", 7.0);
+
+    // parens
+    check("(1 + 2) * 3", 9.0);
+    check("3 * (1 + 2)", 9.0);
+
+    // subtraction
+    check("5 - 3", 2.0);
+    check("3 - 5", -2.0);
+
+    // division
+    check("10 / 5", 2.0);
+    check("2 * 4 / 2", 4.0);
+
+    // exponents
+    check("2 ^ 3", 8.0);
+    check("2 ^ (1 + 1 + 1)", 8.0);
+
+    // exponent associativity
+    check("3 * 2^2", 12.0);
+    check("2^3^2", 512.0);
+}
+
 fn main() {
     let stdin = io::stdin();
 
