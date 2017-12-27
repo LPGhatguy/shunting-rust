@@ -201,6 +201,7 @@ fn evaluate(ast: &AstNode) -> i64 {
         },
         AstNode::UnaryOperator { kind, ref value } => {
             match kind {
+                OperatorKind::Plus => evaluate(value),
                 OperatorKind::Minus => -evaluate(value),
                 _ => unreachable!(),
             }
