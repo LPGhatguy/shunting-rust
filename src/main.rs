@@ -45,6 +45,10 @@ enum AstNode {
         left: Box<AstNode>,
         right: Box<AstNode>,
     },
+    UnaryOperator {
+        kind: OperatorKind,
+        value: Box<AstNode>,
+    },
 }
 
 lazy_static! {
@@ -189,10 +193,16 @@ fn evaluate(ast: &AstNode) -> i64 {
         AstNode::Constant { value } => value,
         AstNode::BinaryOperator { kind, ref left, ref right } => {
             match kind {
-                OperatorKind::Plus => evaluate(&left) + evaluate(&right),
-                OperatorKind::Minus => evaluate(&left) - evaluate(&right),
-                OperatorKind::Times => evaluate(&left) * evaluate(&right),
-                OperatorKind::Divide => evaluate(&left) / evaluate(&right),
+                OperatorKind::Plus => evaluate(left) + evaluate(right),
+                OperatorKind::Minus => evaluate(left) - evaluate(right),
+                OperatorKind::Times => evaluate(left) * evaluate(right),
+                OperatorKind::Divide => evaluate(left) / evaluate(right),
+            }
+        },
+        AstNode::UnaryOperator { kind, ref value } => {
+            match kind {
+                OperatorKind::Minus => -evaluate(value),
+                _ => unreachable!(),
             }
         },
     }
