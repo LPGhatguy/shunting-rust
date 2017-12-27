@@ -76,9 +76,29 @@ impl ShuntingState {
     }
 
     pub fn clear_one_operator(&mut self) {
-        let top_operator = self.operator_stack.pop().unwrap();
-        let right = Box::new(self.operand_stack.pop().unwrap());
-        let left = Box::new(self.operand_stack.pop().unwrap());
+        let top_operator = match self.operator_stack.pop() {
+            Some(v) => v,
+            None => {
+                eprintln!("Tried to pop operator, but couldn't!");
+                return;
+            },
+        };
+
+        let right = match self.operand_stack.pop() {
+            Some(v) => Box::new(v),
+            None => {
+                eprintln!("Tried to pop right operand, but couldn't!");
+                return;
+            },
+        };
+
+        let left = match self.operand_stack.pop() {
+            Some(v) => Box::new(v),
+            None => {
+                eprintln!("Tried to pop left operand, but couldn't!");
+                return;
+            },
+        };
 
         self.operand_stack.push(AstNode::BinaryOperator {
             kind: top_operator.to_binary_operator().unwrap(),
@@ -115,15 +135,13 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
 
                 // clear all operators of higher precedence from the stack
                 loop {
-                    {
-                        let top_operator = match state.operator_stack.last() {
-                            Some(operator) => operator,
-                            None => break,
-                        };
-
-                        if operator.precedence() >= top_operator.precedence() {
-                            break;
-                        }
+                    match state.operator_stack.last() {
+                        Some(top_operator) => {
+                            if operator.precedence() >= top_operator.precedence() {
+                                break;
+                            }
+                        },
+                        None => break,
                     }
 
                     state.clear_one_operator();
@@ -156,9 +174,8 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
         state.clear_one_operator();
     }
 
-    if state.operand_stack.is_empty() {
-        None
-    } else {
-        Some(state.operand_stack.pop().unwrap())
+    match state.operand_stack.is_empty() {
+        true => None,
+        false => Some(state.operand_stack.pop().unwrap()),
     }
 }
