@@ -135,7 +135,19 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                 state.operator_stack.push(ShuntOperator::OpenParen);
             },
             Token::CloseParen => {
+                // clear up until we reach an OpenParen, then pop that too
+                loop {
+                    match state.operator_stack.last() {
+                        Some(&ShuntOperator::OpenParen) => {
+                            state.operator_stack.pop();
+                            break;
+                        },
+                        Some(_) => {},
+                        None => break,
+                    }
 
+                    state.clear_one_operator();
+                }
             },
         }
     }
