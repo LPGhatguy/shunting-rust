@@ -21,6 +21,15 @@ pub enum BinaryOperatorKind {
 }
 
 impl ShuntOperator {
+    pub fn from_lex_operator(operator: &Operator) -> ShuntOperator {
+        match *operator {
+            Operator::Plus => ShuntOperator::Plus,
+            Operator::Minus => ShuntOperator::Minus,
+            Operator::Times => ShuntOperator::Times,
+            Operator::Divide => ShuntOperator::Divide,
+        }
+    }
+
     pub fn precedence(&self) -> u8 {
         match *self {
             ShuntOperator::Plus | ShuntOperator::Minus => 1,
@@ -125,13 +134,8 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                     value
                 });
             },
-            Token::Operator(operator) => {
-                let operator = match operator {
-                    Operator::Plus => ShuntOperator::Plus,
-                    Operator::Minus => ShuntOperator::Minus,
-                    Operator::Times => ShuntOperator::Times,
-                    Operator::Divide => ShuntOperator::Divide,
-                };
+            Token::Operator(lex_operator) => {
+                let operator = ShuntOperator::from_lex_operator(&lex_operator);
 
                 // clear all operators of higher precedence from the stack
                 loop {
