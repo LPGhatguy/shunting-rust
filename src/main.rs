@@ -8,7 +8,7 @@ mod parser;
 use std::io::{self, BufRead, Write};
 
 use lexer::lex;
-use parser::{AstNode, BinaryOperatorKind, parse_expression};
+use parser::{AstNode, BinaryOperatorKind, UnaryOperatorKind, parse_expression};
 
 fn evaluate(ast: &AstNode) -> f64 {
     match *ast {
@@ -22,13 +22,12 @@ fn evaluate(ast: &AstNode) -> f64 {
                 BinaryOperatorKind::Exponent => evaluate(left).powf(evaluate(right)),
             }
         },
-        // AstNode::UnaryOperator { kind, ref value } => {
-        //     match kind {
-        //         Operator::UnaryPlus => evaluate(value),
-        //         Operator::UnaryMinus => -evaluate(value),
-        //         _ => unreachable!(),
-        //     }
-        // },
+        AstNode::UnaryOperator { ref kind, ref value } => {
+            match *kind {
+                UnaryOperatorKind::Plus => evaluate(value),
+                UnaryOperatorKind::Minus => -evaluate(value),
+            }
+        },
     }
 }
 
@@ -71,6 +70,12 @@ fn test_evaluate() {
     // exponent associativity
     check("3 * 2^2", 12.0);
     check("2^3^2", 512.0);
+
+    // unary operators
+    check("-3", -3.0);
+    check("--3", 3.0);
+    check("5 * -3", -15.0);
+    check("10 / -1 * -2", 20.0);
 }
 
 fn main() {
