@@ -1,4 +1,50 @@
-use lexer::{OperatorKind, Token};
+use lexer::{Operator, Token};
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum ShuntOperator {
+    Plus,
+    Minus,
+    Times,
+    Divide,
+    // UnaryPlus,
+    // UnaryMinus,
+    OpenParen,
+    CloseParen,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum BinaryOperatorKind {
+    Plus,
+    Minus,
+    Times,
+    Divide,
+}
+
+impl ShuntOperator {
+    pub fn precedence(&self) -> u8 {
+        match *self {
+            ShuntOperator::Plus | ShuntOperator::Minus => 1,
+            ShuntOperator::Times | ShuntOperator::Divide => 2,
+            _ => 0,
+        }
+    }
+
+    pub fn to_binary_operator(&self) -> Option<BinaryOperatorKind> {
+        match *self {
+            ShuntOperator::Plus => Some(BinaryOperatorKind::Plus),
+            ShuntOperator::Minus => Some(BinaryOperatorKind::Minus),
+            ShuntOperator::Times => Some(BinaryOperatorKind::Times),
+            ShuntOperator::Divide => Some(BinaryOperatorKind::Divide),
+            _ => None,
+        }
+    }
+
+    pub fn is_left_associative(&self) -> bool {
+        match *self {
+            _ => true,
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum AstNode {
@@ -6,18 +52,18 @@ pub enum AstNode {
         value: i64,
     },
     BinaryOperator {
-        kind: OperatorKind,
+        kind: BinaryOperatorKind,
         left: Box<AstNode>,
         right: Box<AstNode>,
     },
-    UnaryOperator {
-        kind: OperatorKind,
-        value: Box<AstNode>,
-    },
+    // UnaryOperator {
+    //     kind: UnaryOperatorKind,
+    //     value: Box<AstNode>,
+    // },
 }
 
 pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
-    let mut operator_stack: Vec<OperatorKind> = Vec::new();
+    let mut operator_stack: Vec<ShuntOperator> = Vec::new();
     let mut operand_stack: Vec<AstNode> = Vec::new();
 
     loop {
@@ -35,6 +81,13 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                 });
             },
             Token::Operator(operator) => {
+                let operator = match operator {
+                    Operator::Plus => ShuntOperator::Plus,
+                    Operator::Minus => ShuntOperator::Minus,
+                    Operator::Times => ShuntOperator::Times,
+                    Operator::Divide => ShuntOperator::Divide,
+                };
+
                 // clear all operators of higher precedence from the stack
                 loop {
                     {
@@ -53,7 +106,7 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                     let left = Box::new(operand_stack.pop().unwrap());
 
                     operand_stack.push(AstNode::BinaryOperator {
-                        kind: top_operator,
+                        kind: top_operator.to_binary_operator().unwrap(),
                         left,
                         right,
                     });
@@ -71,7 +124,7 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
         let left = Box::new(operand_stack.pop().unwrap());
 
         operand_stack.push(AstNode::BinaryOperator {
-            kind: top_operator,
+            kind: top_operator.to_binary_operator().unwrap(),
             left,
             right,
         });

@@ -7,27 +7,27 @@ mod parser;
 
 use std::io::{self, BufRead, Write};
 
-use lexer::{OperatorKind, lex};
-use parser::{AstNode, parse_expression};
+use lexer::lex;
+use parser::{AstNode, BinaryOperatorKind, parse_expression};
 
 fn evaluate(ast: &AstNode) -> i64 {
     match *ast {
         AstNode::Constant { value } => value,
-        AstNode::BinaryOperator { kind, ref left, ref right } => {
-            match kind {
-                OperatorKind::Plus => evaluate(left) + evaluate(right),
-                OperatorKind::Minus => evaluate(left) - evaluate(right),
-                OperatorKind::Times => evaluate(left) * evaluate(right),
-                OperatorKind::Divide => evaluate(left) / evaluate(right),
+        AstNode::BinaryOperator { ref kind, ref left, ref right } => {
+            match *kind {
+                BinaryOperatorKind::Plus => evaluate(left) + evaluate(right),
+                BinaryOperatorKind::Minus => evaluate(left) - evaluate(right),
+                BinaryOperatorKind::Times => evaluate(left) * evaluate(right),
+                BinaryOperatorKind::Divide => evaluate(left) / evaluate(right),
             }
         },
-        AstNode::UnaryOperator { kind, ref value } => {
-            match kind {
-                OperatorKind::Plus => evaluate(value),
-                OperatorKind::Minus => -evaluate(value),
-                _ => unreachable!(),
-            }
-        },
+        // AstNode::UnaryOperator { kind, ref value } => {
+        //     match kind {
+        //         Operator::UnaryPlus => evaluate(value),
+        //         Operator::UnaryMinus => -evaluate(value),
+        //         _ => unreachable!(),
+        //     }
+        // },
     }
 }
 
