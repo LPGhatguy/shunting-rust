@@ -62,9 +62,22 @@ pub enum AstNode {
     // },
 }
 
+struct ShuntingState {
+    pub operator_stack: Vec<ShuntOperator>,
+    pub operand_stack: Vec<AstNode>,
+}
+
+impl ShuntingState {
+    pub fn new() -> ShuntingState {
+        ShuntingState {
+            operator_stack: Vec::new(),
+            operand_stack: Vec::new(),
+        }
+    }
+}
+
 pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
-    let mut operator_stack: Vec<ShuntOperator> = Vec::new();
-    let mut operand_stack: Vec<AstNode> = Vec::new();
+    let mut state = ShuntingState::new();
 
     loop {
         let token = match tokens.first() {
@@ -76,7 +89,7 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
 
         match *token {
             Token::Constant(value) => {
-                operand_stack.push(AstNode::Constant {
+                state.operand_stack.push(AstNode::Constant {
                     value
                 });
             },
@@ -91,7 +104,7 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                 // clear all operators of higher precedence from the stack
                 loop {
                     {
-                        let top_operator = match operator_stack.last() {
+                        let top_operator = match state.operator_stack.last() {
                             Some(operator) => operator,
                             None => break,
                         };
@@ -101,38 +114,43 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                         }
                     }
 
-                    let top_operator = operator_stack.pop().unwrap();
-                    let right = Box::new(operand_stack.pop().unwrap());
-                    let left = Box::new(operand_stack.pop().unwrap());
+                    let top_operator = state.operator_stack.pop().unwrap();
+                    let right = Box::new(state.operand_stack.pop().unwrap());
+                    let left = Box::new(state.operand_stack.pop().unwrap());
 
-                    operand_stack.push(AstNode::BinaryOperator {
+                    state.operand_stack.push(AstNode::BinaryOperator {
                         kind: top_operator.to_binary_operator().unwrap(),
                         left,
                         right,
                     });
                 }
 
-                operator_stack.push(operator);
+                state.operator_stack.push(operator);
             },
-            _ => unimplemented!(),
+            Token::OpenParen => {
+                state.operator_stack.push(ShuntOperator::OpenParen);
+            },
+            Token::CloseParen => {
+
+            },
         }
     }
 
-    while !operator_stack.is_empty() {
-        let top_operator = operator_stack.pop().unwrap();
-        let right = Box::new(operand_stack.pop().unwrap());
-        let left = Box::new(operand_stack.pop().unwrap());
+    while !state.operator_stack.is_empty() {
+        let top_operator = state.operator_stack.pop().unwrap();
+        let right = Box::new(state.operand_stack.pop().unwrap());
+        let left = Box::new(state.operand_stack.pop().unwrap());
 
-        operand_stack.push(AstNode::BinaryOperator {
+        state.operand_stack.push(AstNode::BinaryOperator {
             kind: top_operator.to_binary_operator().unwrap(),
             left,
             right,
         });
     }
 
-    if operand_stack.is_empty() {
+    if state.operand_stack.is_empty() {
         None
     } else {
-        Some(operand_stack.pop().unwrap())
+        Some(state.operand_stack.pop().unwrap())
     }
 }
