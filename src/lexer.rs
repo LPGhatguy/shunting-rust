@@ -95,3 +95,37 @@ pub fn lex(source: &str) -> Vec<Token> {
 
     tokens
 }
+
+#[test]
+fn test_simple() {
+    let source = "5 + 6 * 9";
+    let tokens = lex(source);
+    let expect_tokens = vec![
+        Token::Constant(5),
+        Token::Operator(Operator::Plus),
+        Token::Constant(6),
+        Token::Operator(Operator::Times),
+        Token::Constant(9),
+    ];
+
+    assert_eq!(tokens, expect_tokens);
+}
+
+#[test]
+fn test_parens() {
+    let source = "(1 * (2 + 3))";
+    let tokens = lex(source);
+    let expect_tokens = vec![
+        Token::OpenParen,
+        Token::Constant(1),
+        Token::Operator(Operator::Times),
+        Token::OpenParen,
+        Token::Constant(2),
+        Token::Operator(Operator::Plus),
+        Token::Constant(3),
+        Token::CloseParen,
+        Token::CloseParen,
+    ];
+
+    assert_eq!(tokens, expect_tokens);
+}
