@@ -67,6 +67,7 @@ fn test_evaluate() {
 
     // unary operators
     check("-3", -3.0);
+    check("+3", 3.0);
     check("--3", 3.0);
     check("5 * -3", -15.0);
     check("10 / -1 * -2", 20.0);
