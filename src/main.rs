@@ -10,15 +10,16 @@ use std::io::{self, BufRead, Write};
 use lexer::lex;
 use parser::{AstNode, BinaryOperatorKind, parse_expression};
 
-fn evaluate(ast: &AstNode) -> i64 {
+fn evaluate(ast: &AstNode) -> f64 {
     match *ast {
-        AstNode::Constant { value } => value,
+        AstNode::Constant { value } => value as f64,
         AstNode::BinaryOperator { ref kind, ref left, ref right } => {
             match *kind {
                 BinaryOperatorKind::Plus => evaluate(left) + evaluate(right),
                 BinaryOperatorKind::Minus => evaluate(left) - evaluate(right),
                 BinaryOperatorKind::Times => evaluate(left) * evaluate(right),
                 BinaryOperatorKind::Divide => evaluate(left) / evaluate(right),
+                BinaryOperatorKind::Exponent => evaluate(left).powf(evaluate(right)),
             }
         },
         // AstNode::UnaryOperator { kind, ref value } => {

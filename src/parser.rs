@@ -6,6 +6,7 @@ pub enum ShuntOperator {
     Minus,
     Times,
     Divide,
+    Exponent,
     // UnaryPlus,
     // UnaryMinus,
     OpenParen,
@@ -18,6 +19,7 @@ pub enum BinaryOperatorKind {
     Minus,
     Times,
     Divide,
+    Exponent,
 }
 
 impl ShuntOperator {
@@ -27,6 +29,7 @@ impl ShuntOperator {
             Operator::Minus => ShuntOperator::Minus,
             Operator::Times => ShuntOperator::Times,
             Operator::Divide => ShuntOperator::Divide,
+            Operator::Exponent => ShuntOperator::Exponent,
         }
     }
 
@@ -44,12 +47,14 @@ impl ShuntOperator {
             ShuntOperator::Minus => Some(BinaryOperatorKind::Minus),
             ShuntOperator::Times => Some(BinaryOperatorKind::Times),
             ShuntOperator::Divide => Some(BinaryOperatorKind::Divide),
+            ShuntOperator::Exponent => Some(BinaryOperatorKind::Exponent),
             _ => None,
         }
     }
 
     pub fn is_left_associative(&self) -> bool {
         match *self {
+            ShuntOperator::Exponent => false,
             _ => true,
         }
     }

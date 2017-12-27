@@ -6,6 +6,7 @@ pub enum Operator {
     Minus,
     Times,
     Divide,
+    Exponent,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -19,7 +20,7 @@ pub enum Token {
 lazy_static! {
     static ref PATTERN_WHITESPACE: Regex = Regex::new(r"^\s+").unwrap();
     static ref PATTERN_CONSTANT: Regex = Regex::new(r"^\d+").unwrap();
-    static ref PATTERN_OPERATOR: Regex = Regex::new(r"^(\+|-|\*|/)").unwrap();
+    static ref PATTERN_OPERATOR: Regex = Regex::new(r"^(\+|-|\*|/|\^)").unwrap();
     static ref PATTERN_OPEN_PAREN: Regex = Regex::new(r"^\(").unwrap();
     static ref PATTERN_CLOSE_PAREN: Regex = Regex::new(r"^\)").unwrap();
 }
@@ -57,6 +58,7 @@ fn match_operator<'a>(source: &'a str) -> Option<(&'a str, Token)> {
             "-" => Operator::Minus,
             "*" => Operator::Times,
             "/" => Operator::Divide,
+            "^" => Operator::Exponent,
             _ => unreachable!(),
         };
 
