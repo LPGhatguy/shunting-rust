@@ -12,7 +12,7 @@ use parser::{AstNode, BinaryOperatorKind, UnaryOperatorKind, parse_expression};
 
 fn evaluate(ast: &AstNode) -> f64 {
     match *ast {
-        AstNode::Constant { value } => value as f64,
+        AstNode::Constant { value } => value,
         AstNode::BinaryOperator { ref kind, ref left, ref right } => {
             match *kind {
                 BinaryOperatorKind::Plus => evaluate(left) + evaluate(right),

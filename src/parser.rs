@@ -83,10 +83,10 @@ impl ShuntOperator {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum AstNode {
     Constant {
-        value: i64,
+        value: f64,
     },
     BinaryOperator {
         kind: BinaryOperatorKind,
@@ -102,6 +102,8 @@ pub enum AstNode {
 struct ShuntingState {
     pub operator_stack: Vec<ShuntOperator>,
     pub operand_stack: Vec<AstNode>,
+
+    /// Used to differentiate unary and binary operators
     pub last_was_operator: bool,
 }
 
@@ -226,11 +228,12 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                 state.last_was_operator = true;
             },
             Token::OpenParen => {
+                // Just push a paren onto the stack
                 state.operator_stack.push(ShuntOperator::OpenParen);
                 state.last_was_operator = true;
             },
             Token::CloseParen => {
-                // clear up until we reach an OpenParen, then pop that too
+                // Clear up until we reach an OpenParen, then pop that too
                 loop {
                     match state.operator_stack.last() {
                         Some(&ShuntOperator::OpenParen) => {

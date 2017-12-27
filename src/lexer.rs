@@ -1,6 +1,8 @@
+/// A straightforward regex-based lexer
+
 use regex::Regex;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operator {
     Plus,
     Minus,
@@ -9,9 +11,9 @@ pub enum Operator {
     Exponent,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum Token {
-    Constant(i64),
+    Constant(f64),
     Operator(Operator),
     OpenParen,
     CloseParen,
@@ -48,7 +50,7 @@ where
 }
 
 fn match_constant<'a>(source: &'a str) -> Option<(&'a str, Token)> {
-    match_simple(source, &PATTERN_CONSTANT, |v| Token::Constant(v.parse::<i64>().unwrap()))
+    match_simple(source, &PATTERN_CONSTANT, |v| Token::Constant(v.parse::<f64>().unwrap()))
 }
 
 fn match_operator<'a>(source: &'a str) -> Option<(&'a str, Token)> {
@@ -103,13 +105,13 @@ fn test_simple() {
     let source = "5 + 6 * 9 ^ 2";
     let tokens = lex(source);
     let expect_tokens = vec![
-        Token::Constant(5),
+        Token::Constant(5.0),
         Token::Operator(Operator::Plus),
-        Token::Constant(6),
+        Token::Constant(6.0),
         Token::Operator(Operator::Times),
-        Token::Constant(9),
+        Token::Constant(9.0),
         Token::Operator(Operator::Exponent),
-        Token::Constant(2),
+        Token::Constant(2.0),
     ];
 
     assert_eq!(tokens, expect_tokens);
@@ -121,12 +123,12 @@ fn test_parens() {
     let tokens = lex(source);
     let expect_tokens = vec![
         Token::OpenParen,
-        Token::Constant(1),
+        Token::Constant(1.0),
         Token::Operator(Operator::Times),
         Token::OpenParen,
-        Token::Constant(2),
+        Token::Constant(2.0),
         Token::Operator(Operator::Plus),
-        Token::Constant(3),
+        Token::Constant(3.0),
         Token::CloseParen,
         Token::CloseParen,
     ];
