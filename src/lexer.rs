@@ -100,7 +100,7 @@ pub fn lex(source: &str) -> Vec<Token> {
 
 #[test]
 fn test_simple() {
-    let source = "5 + 6 * 9";
+    let source = "5 + 6 * 9 ^ 2";
     let tokens = lex(source);
     let expect_tokens = vec![
         Token::Constant(5),
@@ -108,6 +108,8 @@ fn test_simple() {
         Token::Constant(6),
         Token::Operator(Operator::Times),
         Token::Constant(9),
+        Token::Operator(Operator::Exponent),
+        Token::Constant(2),
     ];
 
     assert_eq!(tokens, expect_tokens);
