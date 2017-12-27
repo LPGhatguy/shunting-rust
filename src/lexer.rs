@@ -1,4 +1,4 @@
-/// A straightforward regex-based lexer
+/// A straightforward regex-based lexer.
 
 use regex::Regex;
 
@@ -35,6 +35,8 @@ fn eat_whitespace<'a>(source: &'a str) -> &'a str {
     }
 }
 
+/// Matches the given pattern against the source, using a tokenizer function to
+/// turn the match into a token.
 fn match_simple<'a, F>(source: &'a str, pattern: &Regex, tokenizer: F) -> Option<(&'a str, Token)>
 where
     F: Fn(&'a str) -> Token
@@ -73,11 +75,13 @@ fn match_paren<'a>(source: &'a str) -> Option<(&'a str, Token)> {
         .or_else(|| match_simple(source, &PATTERN_CLOSE_PAREN, |_| Token::CloseParen))
 }
 
+/// Create a list of tokens out of the given source.
 pub fn lex(source: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut current = source;
 
     loop {
+        // We don't care about whitespace between tokens
         current = eat_whitespace(current);
 
         let result = match_constant(current)
@@ -93,6 +97,7 @@ pub fn lex(source: &str) -> Vec<Token> {
         }
     }
 
+    // If there's stuff left over, that's bad news
     if !current.is_empty() {
         eprintln!("Found unexpected sequence in lexer: {}", current);
     }

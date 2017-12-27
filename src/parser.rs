@@ -10,7 +10,6 @@ pub enum ShuntOperator {
     UnaryPlus,
     UnaryMinus,
     OpenParen,
-    CloseParen,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -28,6 +27,7 @@ pub enum UnaryOperatorKind {
     Minus,
 }
 
+/// A bunch of mundane conversions to and from ShuntOperator
 impl ShuntOperator {
     pub fn from_lex_operator(operator: &Operator) -> ShuntOperator {
         match *operator {
@@ -36,16 +36,6 @@ impl ShuntOperator {
             Operator::Times => ShuntOperator::Times,
             Operator::Divide => ShuntOperator::Divide,
             Operator::Exponent => ShuntOperator::Exponent,
-        }
-    }
-
-    pub fn precedence(&self) -> u8 {
-        match *self {
-            ShuntOperator::Plus | ShuntOperator::Minus => 1,
-            ShuntOperator::Times | ShuntOperator::Divide => 2,
-            ShuntOperator::Exponent => 3,
-            ShuntOperator::UnaryPlus | ShuntOperator::UnaryMinus => 254,
-            _ => 0,
         }
     }
 
@@ -65,6 +55,16 @@ impl ShuntOperator {
             ShuntOperator::UnaryPlus => Some(UnaryOperatorKind::Plus),
             ShuntOperator::UnaryMinus => Some(UnaryOperatorKind::Minus),
             _ => None,
+        }
+    }
+
+    pub fn precedence(&self) -> u8 {
+        match *self {
+            ShuntOperator::Plus | ShuntOperator::Minus => 1,
+            ShuntOperator::Times | ShuntOperator::Divide => 2,
+            ShuntOperator::Exponent => 3,
+            ShuntOperator::UnaryPlus | ShuntOperator::UnaryMinus => 254,
+            _ => 0,
         }
     }
 
@@ -99,10 +99,12 @@ pub enum AstNode {
     },
 }
 
+/// State required for
 struct ShuntingState {
     pub operator_stack: Vec<ShuntOperator>,
     pub operand_stack: Vec<AstNode>,
 
+    /// If the last token seen was an operator, this will be set to true.
     /// Used to differentiate unary and binary operators
     pub last_was_operator: bool,
 }
@@ -116,6 +118,8 @@ impl ShuntingState {
         }
     }
 
+    /// Takes the top operator from operator_stack and tries to pair it up with
+    /// the appropriate number of operands from operand_stack.
     pub fn clear_one_operator(&mut self) {
         let top_operator = match self.operator_stack.pop() {
             Some(v) => v,
@@ -125,6 +129,8 @@ impl ShuntingState {
             },
         };
 
+        // For unary operators, this is the sole value.
+        // For binary operators, there's another value to pop!
         let right = match self.operand_stack.pop() {
             Some(v) => Box::new(v),
             None => {
@@ -133,6 +139,7 @@ impl ShuntingState {
             },
         };
 
+        // Maybe this should be replaced with an 'arity' method in the future?
         if top_operator.is_unary() {
             self.operand_stack.push(AstNode::UnaryOperator {
                 kind: top_operator.to_unary_operator().unwrap(),
@@ -156,10 +163,14 @@ impl ShuntingState {
     }
 }
 
+/// Construct an Abstract Syntax Tree (AST) from the given list of tokens.
+///
+/// Returns `None` if parsing fails.
 pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
     let mut state = ShuntingState::new();
 
     loop {
+        // Advance one token further into the stream
         let token = match tokens.first() {
             Some(token) => token,
             None => break,
@@ -176,6 +187,8 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                 state.last_was_operator = false;
             },
             Token::Operator(lex_operator) => {
+                // If the last token we saw was an operator, then this operator
+                // is unary, if that makes sense for this kind of operator.
                 let operator = match lex_operator {
                     Operator::Plus => {
                         match state.last_was_operator {
@@ -193,34 +206,30 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                 };
 
                 if !operator.is_unary() {
-                    if operator.is_left_associative() {
-                        // Clear all operators of higher precedence
-                        loop {
-                            match state.operator_stack.last() {
-                                Some(top_operator) => {
-                                    if operator.precedence() > top_operator.precedence() {
-                                        break;
-                                    }
-                                },
-                                None => break,
-                            }
+                    // Clear from operator_stack based on precedence
+                    loop {
+                        match state.operator_stack.last() {
+                            Some(top_operator) => {
+                                // For left-associative operators, we clear all
+                                // operators of higher precedence.
+                                //
+                                // For right-associative operators, we also
+                                // clear all operators of equal precedence.
 
-                            state.clear_one_operator();
-                        }
-                    } else {
-                        // Clear all operators of higher or equal precedence
-                        loop {
-                            match state.operator_stack.last() {
-                                Some(top_operator) => {
-                                    if operator.precedence() >= top_operator.precedence() {
-                                        break;
-                                    }
-                                },
-                                None => break,
-                            }
+                                let do_break = if operator.is_left_associative() {
+                                    operator.precedence() > top_operator.precedence()
+                                } else {
+                                    operator.precedence() >= top_operator.precedence()
+                                };
 
-                            state.clear_one_operator();
+                                if do_break {
+                                    break;
+                                }
+                            },
+                            None => break,
                         }
+
+                        state.clear_one_operator();
                     }
                 }
 
@@ -228,7 +237,9 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                 state.last_was_operator = true;
             },
             Token::OpenParen => {
-                // Just push a paren onto the stack
+                // Push an open paren onto the stack
+                // It has a precedence of zero -- it will stay on the stack
+                // until the next closing parenthesis
                 state.operator_stack.push(ShuntOperator::OpenParen);
                 state.last_was_operator = true;
             },
@@ -252,12 +263,15 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
         }
     }
 
+    // Clean up any outstanding operators
     while !state.operator_stack.is_empty() {
         state.clear_one_operator();
     }
 
-    match state.operand_stack.is_empty() {
-        true => None,
-        false => Some(state.operand_stack.pop().unwrap()),
+    // An operand stack with a length other than 1 is a parsing error!
+    if state.operand_stack.len() != 1 {
+        return None;
     }
+
+    Some(state.operand_stack.pop().unwrap())
 }
