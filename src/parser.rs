@@ -74,6 +74,18 @@ impl ShuntingState {
             operand_stack: Vec::new(),
         }
     }
+
+    pub fn clear_one_operator(&mut self) {
+        let top_operator = self.operator_stack.pop().unwrap();
+        let right = Box::new(self.operand_stack.pop().unwrap());
+        let left = Box::new(self.operand_stack.pop().unwrap());
+
+        self.operand_stack.push(AstNode::BinaryOperator {
+            kind: top_operator.to_binary_operator().unwrap(),
+            left,
+            right,
+        });
+    }
 }
 
 pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
@@ -114,15 +126,7 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                         }
                     }
 
-                    let top_operator = state.operator_stack.pop().unwrap();
-                    let right = Box::new(state.operand_stack.pop().unwrap());
-                    let left = Box::new(state.operand_stack.pop().unwrap());
-
-                    state.operand_stack.push(AstNode::BinaryOperator {
-                        kind: top_operator.to_binary_operator().unwrap(),
-                        left,
-                        right,
-                    });
+                    state.clear_one_operator();
                 }
 
                 state.operator_stack.push(operator);
@@ -137,15 +141,7 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
     }
 
     while !state.operator_stack.is_empty() {
-        let top_operator = state.operator_stack.pop().unwrap();
-        let right = Box::new(state.operand_stack.pop().unwrap());
-        let left = Box::new(state.operand_stack.pop().unwrap());
-
-        state.operand_stack.push(AstNode::BinaryOperator {
-            kind: top_operator.to_binary_operator().unwrap(),
-            left,
-            right,
-        });
+        state.clear_one_operator();
     }
 
     if state.operand_stack.is_empty() {
