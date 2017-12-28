@@ -1,43 +1,22 @@
+/// Nothing interesting happpens here, everything is broken apart into modules!
+
 #[macro_use]
 extern crate lazy_static;
 extern crate regex;
 
+// The lexer takes strings and produces lists of tokens
 mod lexer;
+
+// The parser takes list of tokens and produces an abstract syntax tree
 mod parser;
+
+// The evaluator uses the abstract syntax tree to compute numeric results
 mod evaluate;
 
-use std::io::{self, BufRead, Write};
+// The REPL is a small module that takes user input and processes it fully
+mod repl;
 
-use lexer::lex;
-use parser::parse_expression;
-use evaluate::evaluate;
-
+// Call out to the REPL!
 fn main() {
-    let stdin = io::stdin();
-
-    loop {
-        print!("> ");
-        io::stdout().flush().unwrap();
-
-        let mut input = String::new();
-
-        stdin
-            .lock()
-            .read_line(&mut input)
-            .expect("Couldn't read line!");
-
-        let tokens = lex(&input);
-
-        let ast = match parse_expression(&tokens) {
-            Some(ast) => ast,
-            None => {
-                eprintln!("Could not parse expression!");
-                continue;
-            },
-        };
-
-        let result = evaluate(&ast);
-
-        println!("{}", result);
-    }
+    repl::start();
 }

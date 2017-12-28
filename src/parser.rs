@@ -1,5 +1,12 @@
+/// An implementation of shunting-yard using the tokens produced by the lexer.
+
 use lexer::{Operator, Token};
 
+/// We transform lexer tokens into these 'shunt operators', which convey more
+/// semantics that are useful when parsing.
+///
+/// A bunch of methods are implemented for `ShuntOperator` to convert it to and
+/// from other operator formats in the pipeline.
 #[derive(Debug, PartialEq, Eq)]
 pub enum ShuntOperator {
     Plus,
@@ -69,10 +76,9 @@ impl ShuntOperator {
     }
 
     pub fn is_unary(&self) -> bool {
-        match *self {
-            ShuntOperator::UnaryPlus | ShuntOperator::UnaryMinus => true,
-            _ => false,
-        }
+        // We can avoid duplicating our set of unary operators by utilizing our
+        // other conversion method.
+        self.to_unary_operator().is_some()
     }
 
     pub fn is_left_associative(&self) -> bool {
@@ -83,6 +89,7 @@ impl ShuntOperator {
     }
 }
 
+/// Represents a node in the parser's result tree, the abstract syntax tree.
 #[derive(Debug, PartialEq)]
 pub enum AstNode {
     Constant {
@@ -99,9 +106,14 @@ pub enum AstNode {
     },
 }
 
-/// State required for
+/// State required for running the shunting-yard algorithm
 struct ShuntingState {
+    /// The stack of operators we've visited but not processed
     pub operator_stack: Vec<ShuntOperator>,
+
+    /// The stack of operands we've collected so far
+    /// Constants are pushed onto this stack, as well as operands created by
+    /// combining operators and operands.
     pub operand_stack: Vec<AstNode>,
 
     /// If the last token seen was an operator, this will be set to true.
@@ -110,6 +122,11 @@ struct ShuntingState {
 }
 
 impl ShuntingState {
+    /// Construct a new `ShuntingState`.
+    /// `lasy_was_operator` is set to true at the start to line up with how
+    /// unary operator parsing works. If the first token is an operator, it
+    /// must be unary, and if an operator appears immediately after another,
+    /// it also must be unary!
     pub fn new() -> ShuntingState {
         ShuntingState {
             operator_stack: Vec::new(),
@@ -205,8 +222,9 @@ pub fn parse_expression(mut tokens: &[Token]) -> Option<AstNode> {
                     _ => ShuntOperator::from_lex_operator(&lex_operator),
                 };
 
+                // Binary operators need to clear operators from the stack based
+                // on precedence!
                 if !operator.is_unary() {
-                    // Clear from operator_stack based on precedence
                     loop {
                         match state.operator_stack.last() {
                             Some(top_operator) => {

@@ -1,6 +1,7 @@
 use parser::{AstNode, BinaryOperatorKind, UnaryOperatorKind};
 
 /// Accepts an AST and computes a floating point result from it.
+/// This is a fairly naive recursive solution.
 pub fn evaluate(ast: &AstNode) -> f64 {
     match *ast {
         AstNode::Constant { value } => value,
