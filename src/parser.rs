@@ -123,7 +123,7 @@ struct ShuntingState {
 
 impl ShuntingState {
     /// Construct a new `ShuntingState`.
-    /// `lasy_was_operator` is set to true at the start to line up with how
+    /// `last_was_operator` is set to true at the start to line up with how
     /// unary operator parsing works. If the first token is an operator, it
     /// must be unary, and if an operator appears immediately after another,
     /// it also must be unary!
